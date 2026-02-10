@@ -964,6 +964,69 @@ export class RemixServerAuth extends RemixClientAuth {
     );
   }
 
+  async emailPasswordVerify(
+    req: Request,
+    data?: { verification_token: string },
+  ): Promise<{ tokenData: TokenData; headers: Headers }>;
+  async emailPasswordVerify<Res>(
+    req: Request,
+    cb: (params: ParamsOrError<{ tokenData: TokenData }>) => Res | Promise<Res>,
+  ): Promise<Res extends Response ? Res : TypedResponse<Res>>;
+  async emailPasswordVerify<Res extends Response>(
+    req: Request,
+    data: { verification_token: string },
+    cb: (params: ParamsOrError<{ tokenData: TokenData }>) => Res | Promise<Res>,
+  ): Promise<Res extends Response ? Res : TypedResponse<Res>>;
+  async emailPasswordVerify<Res>(
+    req: Request,
+    dataOrCb?:
+      | { verification_token: string }
+      | ((
+          params: ParamsOrError<{ tokenData: TokenData }>,
+        ) => Res | Promise<Res>),
+    cb?: (
+      params: ParamsOrError<{ tokenData: TokenData }>,
+    ) => Res | Promise<Res>,
+  ): Promise<
+    | {
+        tokenData: TokenData;
+        headers: Headers;
+      }
+    | (Res extends Response ? Res : TypedResponse<Res>)
+  > {
+    return handleAction(
+      async (data, headers, req) => {
+        const verifier = parseCookies(req, this.options).pkceVerifierCookie;
+
+        if (!verifier) {
+          throw new PKCEError("no pkce verifier cookie found");
+        }
+
+        const [verificationToken] = _extractParams(
+          data,
+          ["verification_token"],
+          "verification_token missing",
+        );
+
+        const tokenData = await (
+          await this.core
+        ).verifyEmailPasswordSignup(verificationToken, verifier);
+
+        headers.append(
+          "Set-Cookie",
+          this.createAuthCookie(tokenData.auth_token),
+        );
+
+        deleteVerifierCookie(headers, this.options.pkceVerifierCookieName);
+
+        return { tokenData };
+      },
+      req,
+      dataOrCb,
+      cb,
+    );
+  }
+
   async magicLinkSignUp(
     req: Request,
     data?: {
