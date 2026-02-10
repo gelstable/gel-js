@@ -26,6 +26,8 @@ export {
   type CreateAuthRouteHandlers,
 };
 
+const DEFAULT_EMAIL_VERIFICATION_ROUTE = "emailpassword/verify";
+
 export class NextAppAuth extends NextAuth {
   getSession = cache(async () => {
     const cookieStore = await cookies();
@@ -69,7 +71,7 @@ export class NextAppAuth extends NextAuth {
               this.options.emailVerificationPath,
               this.options.baseUrl,
             ).toString()
-          : `${this._authRoute}/emailpassword/verify`;
+          : `${this._authRoute}/${DEFAULT_EMAIL_VERIFICATION_ROUTE}`;
         const result = await (
           await this.core
         ).signupWithEmailPassword(
@@ -174,7 +176,7 @@ export class NextAppAuth extends NextAuth {
                 this.options.emailVerificationPath,
                 this.options.baseUrl,
               ).toString()
-            : `${this._authRoute}/emailpassword/verify`;
+            : `${this._authRoute}/${DEFAULT_EMAIL_VERIFICATION_ROUTE}`;
           const { verifier } = await (
             await this.core
           ).resendVerificationEmailForEmail(

@@ -28,6 +28,8 @@ import {
   type AuthOptions,
 } from "./client.js";
 
+const DEFAULT_EMAIL_VERIFICATION_ROUTE = "emailpassword/verify";
+
 export * from "@gel/auth-core/errors";
 export type { TokenData, AuthOptions, Client };
 
@@ -219,7 +221,7 @@ export class ServerRequestAuth extends ClientAuth {
           this.config.emailVerificationPath,
           this.config.baseUrl,
         ).toString()
-      : `${this.config.authRoute}/emailpassword/verify`;
+      : `${this.config.authRoute}/${DEFAULT_EMAIL_VERIFY_ROUTE}`;
     const result = await (
       await this.core
     ).signupWithEmailPassword(
@@ -267,7 +269,7 @@ export class ServerRequestAuth extends ClientAuth {
             this.config.emailVerificationPath,
             this.config.baseUrl,
           ).toString()
-        : `${this.config.authRoute}/emailpassword/verify`;
+        : `${this.config.authRoute}/${DEFAULT_EMAIL_VERIFY_ROUTE}`;
       const { verifier } = await (
         await this.core
       ).resendVerificationEmailForEmail(

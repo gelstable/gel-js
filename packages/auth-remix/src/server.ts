@@ -22,6 +22,8 @@ import { type RemixAuthOptions, RemixClientAuth } from "./client.js";
 export * from "@gel/auth-core/errors";
 export type { TokenData, RemixAuthOptions };
 
+const DEFAULT_EMAIL_VERIFICATION_ROUTE = "emailpassword/verify";
+
 export type BuiltinProviderNames =
   | BuiltinOAuthProviderNames
   | typeof emailPasswordProviderName;
@@ -562,7 +564,7 @@ export class RemixServerAuth extends RemixClientAuth {
               this.options.emailVerificationPath,
               this.options.baseUrl,
             ).toString()
-          : `${this._authRoute}/emailpassword/verify`;
+          : `${this._authRoute}/${DEFAULT_EMAIL_VERIFICATION_ROUTE}`;
         const result = await (
           await this.core
         ).signupWithEmailPassword(
@@ -638,7 +640,7 @@ export class RemixServerAuth extends RemixClientAuth {
                 this.options.emailVerificationPath,
                 this.options.baseUrl,
               ).toString()
-            : `${this._authRoute}/emailpassword/verify`;
+            : `${this._authRoute}/${DEFAULT_EMAIL_VERIFICATION_ROUTE}`;
           const { verifier } = await (
             await this.core
           ).resendVerificationEmailForEmail(
