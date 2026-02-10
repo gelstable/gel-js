@@ -23,7 +23,7 @@ import { type NextRequest, NextResponse } from "next/server";
 
 export { type BuiltinProviderNames, NextAuthHelpers, type NextAuthOptions };
 
-const DEFAULT_EMAIL_VERIFICATION_ROUTE = "emailpassword/verify";
+const DEFAULT_EMAIL_VERIFICATION_ROUTE = "emailpassword/verify" as const;
 
 type ParamsOrError<
   Result extends object,
@@ -683,7 +683,7 @@ export abstract class NextAuth extends NextAuthHelpers {
                     this.options.emailVerificationPath,
                     this.options.baseUrl,
                   ).toString()
-                : `${this._authRoute}/${DEFAULT_EMAIL_VERIFY_ROUTE}`;
+                : `${this._authRoute}/${DEFAULT_EMAIL_VERIFICATION_ROUTE}`;
               result = await (
                 await this.core
               ).signupWithEmailPassword(
@@ -807,7 +807,7 @@ export abstract class NextAuth extends NextAuthHelpers {
                     this.options.emailVerificationPath,
                     this.options.baseUrl,
                   ).toString()
-                : `${this._authRoute}/${DEFAULT_EMAIL_VERIFY_ROUTE}`;
+                : `${this._authRoute}/${DEFAULT_EMAIL_VERIFICATION_ROUTE}`;
               const { verifier } = await (
                 await this.core
               ).resendVerificationEmailForEmail(

@@ -26,7 +26,7 @@ export {
   type CreateAuthRouteHandlers,
 };
 
-const DEFAULT_EMAIL_VERIFICATION_ROUTE = "emailpassword/verify";
+const DEFAULT_EMAIL_VERIFICATION_ROUTE = "emailpassword/verify" as const;
 
 export class NextAppAuth extends NextAuth {
   getSession = cache(async () => {

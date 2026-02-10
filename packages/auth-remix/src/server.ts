@@ -22,7 +22,7 @@ import { type RemixAuthOptions, RemixClientAuth } from "./client.js";
 export * from "@gel/auth-core/errors";
 export type { TokenData, RemixAuthOptions };
 
-const DEFAULT_EMAIL_VERIFICATION_ROUTE = "emailpassword/verify";
+const DEFAULT_EMAIL_VERIFICATION_ROUTE = "emailpassword/verify" as const;
 
 export type BuiltinProviderNames =
   | BuiltinOAuthProviderNames
