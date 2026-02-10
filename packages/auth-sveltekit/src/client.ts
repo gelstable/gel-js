@@ -8,9 +8,10 @@ export interface AuthOptions {
   pkceVerifierCookieName?: string;
   passwordResetPath?: string;
   magicLinkFailurePath?: string;
+  emailVerificationPath?: string;
 }
 
-type OptionalOptions = "passwordResetPath" | "magicLinkFailurePath";
+type OptionalOptions = "passwordResetPath" | "magicLinkFailurePath" | "emailVerificationPath";
 
 export type AuthConfig = Required<Omit<AuthOptions, OptionalOptions>> &
   Pick<AuthOptions, OptionalOptions> & { authRoute: string };
@@ -28,6 +29,7 @@ export function getConfig(options: AuthOptions) {
       options.pkceVerifierCookieName ?? "gel-pkce-verifier",
     passwordResetPath: options.passwordResetPath,
     magicLinkFailurePath: options.magicLinkFailurePath,
+    emailVerificationPath: options.emailVerificationPath,
     authRoute: `${baseUrl}/${authRoutesPath}`,
   };
 }

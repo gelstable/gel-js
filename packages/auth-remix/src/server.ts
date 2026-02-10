@@ -557,12 +557,18 @@ export class RemixServerAuth extends RemixClientAuth {
           "email or password missing",
         );
 
+        const verifyUrl = this.options.emailVerificationPath
+          ? new URL(
+              this.options.emailVerificationPath,
+              this.options.baseUrl,
+            ).toString()
+          : `${this._authRoute}/emailpassword/verify`;
         const result = await (
           await this.core
         ).signupWithEmailPassword(
           email,
           password,
-          `${this._authRoute}/emailpassword/verify`,
+          verifyUrl,
         );
 
         headers.append(
@@ -627,11 +633,17 @@ export class RemixServerAuth extends RemixClientAuth {
             await this.core
           ).resendVerificationEmail(verificationToken.toString());
         } else if (email) {
+          const resendVerifyUrl = this.options.emailVerificationPath
+            ? new URL(
+                this.options.emailVerificationPath,
+                this.options.baseUrl,
+              ).toString()
+            : `${this._authRoute}/emailpassword/verify`;
           const { verifier } = await (
             await this.core
           ).resendVerificationEmailForEmail(
             email.toString(),
-            `${this._authRoute}/emailpassword/verify`,
+            resendVerifyUrl,
           );
 
           headers.append("Set-Cookie", this.createVerifierCookie(verifier));

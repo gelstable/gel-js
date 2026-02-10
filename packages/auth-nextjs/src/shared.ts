@@ -676,12 +676,18 @@ export abstract class NextAuth extends NextAuthHelpers {
                 ["email", "password"],
                 "email or password missing from request body",
               );
+              const verifyUrl = this.options.emailVerificationPath
+                ? new URL(
+                    this.options.emailVerificationPath,
+                    this.options.baseUrl,
+                  ).toString()
+                : `${this._authRoute}/emailpassword/verify`;
               result = await (
                 await this.core
               ).signupWithEmailPassword(
                 email,
                 password,
-                `${this._authRoute}/emailpassword/verify`,
+                verifyUrl,
               );
             } catch (err) {
               const error = err instanceof Error ? err : new Error(String(err));
@@ -794,11 +800,17 @@ export abstract class NextAuth extends NextAuthHelpers {
                 ? Response.json({ _data: null })
                 : new Response(null, { status: 204 });
             } else if (email) {
+              const resendVerifyUrl = this.options.emailVerificationPath
+                ? new URL(
+                    this.options.emailVerificationPath,
+                    this.options.baseUrl,
+                  ).toString()
+                : `${this._authRoute}/emailpassword/verify`;
               const { verifier } = await (
                 await this.core
               ).resendVerificationEmailForEmail(
                 email.toString(),
-                `${this._authRoute}/emailpassword/verify`,
+                resendVerifyUrl,
               );
               const cookieStore = await cookies();
               cookieStore.set({

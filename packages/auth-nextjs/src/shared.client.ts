@@ -17,9 +17,10 @@ export interface NextAuthOptions {
   pkceVerifierCookieName?: string;
   passwordResetPath?: string;
   magicLinkFailurePath?: string;
+  emailVerificationPath?: string;
 }
 
-type OptionalOptions = "passwordResetPath" | "magicLinkFailurePath";
+type OptionalOptions = "passwordResetPath" | "magicLinkFailurePath" | "emailVerificationPath";
 
 export abstract class NextAuthHelpers {
   /** @internal */
@@ -38,6 +39,7 @@ export abstract class NextAuthHelpers {
         options.pkceVerifierCookieName ?? "gel-pkce-verifier",
       passwordResetPath: options.passwordResetPath,
       magicLinkFailurePath: options.magicLinkFailurePath,
+      emailVerificationPath: options.emailVerificationPath,
     };
     this.webAuthnClient = new WebAuthnClient({
       signupOptionsUrl: `${this._authRoute}/webauthn/signup/options`,

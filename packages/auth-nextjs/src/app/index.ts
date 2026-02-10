@@ -64,12 +64,18 @@ export class NextAppAuth extends NextAuth {
           ["email", "password"],
           "email or password missing",
         );
+        const verifyUrl = this.options.emailVerificationPath
+          ? new URL(
+              this.options.emailVerificationPath,
+              this.options.baseUrl,
+            ).toString()
+          : `${this._authRoute}/emailpassword/verify`;
         const result = await (
           await this.core
         ).signupWithEmailPassword(
           email,
           password,
-          `${this._authRoute}/emailpassword/verify`,
+          verifyUrl,
         );
         await this.setVerifierCookie(result.verifier);
         if (result.status === "complete") {
@@ -163,11 +169,17 @@ export class NextAppAuth extends NextAuth {
             await this.core
           ).resendVerificationEmail(verificationToken.toString());
         } else if (email) {
+          const resendVerifyUrl = this.options.emailVerificationPath
+            ? new URL(
+                this.options.emailVerificationPath,
+                this.options.baseUrl,
+              ).toString()
+            : `${this._authRoute}/emailpassword/verify`;
           const { verifier } = await (
             await this.core
           ).resendVerificationEmailForEmail(
             email.toString(),
-            `${this._authRoute}/emailpassword/verify`,
+            resendVerifyUrl,
           );
 
           const cookieStore = await cookies();

@@ -214,12 +214,18 @@ export class ServerRequestAuth extends ClientAuth {
       "email or password missing",
     );
 
+    const verifyUrl = this.config.emailVerificationPath
+      ? new URL(
+          this.config.emailVerificationPath,
+          this.config.baseUrl,
+        ).toString()
+      : `${this.config.authRoute}/emailpassword/verify`;
     const result = await (
       await this.core
     ).signupWithEmailPassword(
       email,
       password,
-      `${this.config.authRoute}/emailpassword/verify`,
+      verifyUrl,
     );
 
     this.setVerifierCookie(result.verifier);
@@ -256,11 +262,17 @@ export class ServerRequestAuth extends ClientAuth {
         await this.core
       ).resendVerificationEmail(verificationToken.toString());
     } else if (email) {
+      const resendVerifyUrl = this.config.emailVerificationPath
+        ? new URL(
+            this.config.emailVerificationPath,
+            this.config.baseUrl,
+          ).toString()
+        : `${this.config.authRoute}/emailpassword/verify`;
       const { verifier } = await (
         await this.core
       ).resendVerificationEmailForEmail(
         email.toString(),
-        `${this.config.authRoute}/emailpassword/verify`,
+        resendVerifyUrl,
       );
 
       this.setVerifierCookie(verifier);
