@@ -1122,11 +1122,11 @@ async function parseDSNIntoConfig(
     }
   }
 
-  await handleDSNPart("user", parsed.username, config._user, config.setUser);
+  await handleDSNPart("user", decodeURIComponent(parsed.username), config._user, config.setUser);
 
   await handleDSNPart(
     "password",
-    parsed.password,
+    decodeURIComponent(parsed.password),
     config._password,
     config.setPassword,
   );

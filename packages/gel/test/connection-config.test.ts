@@ -754,6 +754,21 @@ test("logging, inProject, fromProject, fromEnv", async () => {
   }
 });
 
+test("DSN URL-encoded credentials are decoded", async () => {
+  // password with special chars: P@ss#w0rd&123 → encoded as P%40ss%23w0rd%26123
+  const { connectionParams: cp1 } = await parseConnectArguments({
+    dsn: "gel://admin:P%40ss%23w0rd%26123@localhost:5656/main",
+  });
+  expect(cp1.password).toBe("P@ss#w0rd&123");
+  expect(cp1.user).toBe("admin");
+
+  // username with special chars: user@domain → encoded as user%40domain
+  const { connectionParams: cp2 } = await parseConnectArguments({
+    dsn: "gel://user%40domain:pass@localhost:5656/main",
+  });
+  expect(cp2.user).toBe("user@domain");
+});
+
 // Checks if _tlsSecurity is correctly set up based on env vars and inline
 // options for CLIENT_SECURITY and CLIENT_TLS_SECURITY.
 test("GEL_CLIENT_SECURITY env var", async () => {
