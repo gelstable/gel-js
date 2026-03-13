@@ -22,6 +22,8 @@ import { type RemixAuthOptions, RemixClientAuth } from "./client.js";
 export * from "@gel/auth-core/errors";
 export type { TokenData, RemixAuthOptions };
 
+const DEFAULT_EMAIL_VERIFICATION_ROUTE = "emailpassword/verify" as const;
+
 export type BuiltinProviderNames =
   | BuiltinOAuthProviderNames
   | typeof emailPasswordProviderName;
@@ -557,12 +559,18 @@ export class RemixServerAuth extends RemixClientAuth {
           "email or password missing",
         );
 
+        const verifyUrl = this.options.emailVerificationPath
+          ? new URL(
+              this.options.emailVerificationPath,
+              this.options.baseUrl,
+            ).toString()
+          : `${this._authRoute}/${DEFAULT_EMAIL_VERIFICATION_ROUTE}`;
         const result = await (
           await this.core
         ).signupWithEmailPassword(
           email,
           password,
-          `${this._authRoute}/emailpassword/verify`,
+          verifyUrl,
         );
 
         headers.append(
@@ -627,11 +635,17 @@ export class RemixServerAuth extends RemixClientAuth {
             await this.core
           ).resendVerificationEmail(verificationToken.toString());
         } else if (email) {
+          const resendVerifyUrl = this.options.emailVerificationPath
+            ? new URL(
+                this.options.emailVerificationPath,
+                this.options.baseUrl,
+              ).toString()
+            : `${this._authRoute}/${DEFAULT_EMAIL_VERIFICATION_ROUTE}`;
           const { verifier } = await (
             await this.core
           ).resendVerificationEmailForEmail(
             email.toString(),
-            `${this._authRoute}/emailpassword/verify`,
+            resendVerifyUrl,
           );
 
           headers.append("Set-Cookie", this.createVerifierCookie(verifier));
@@ -948,6 +962,69 @@ export class RemixServerAuth extends RemixClientAuth {
         const tokenData = await (
           await this.core
         ).resetPasswordWithResetToken(resetToken, verifier, password);
+
+        headers.append(
+          "Set-Cookie",
+          this.createAuthCookie(tokenData.auth_token),
+        );
+
+        deleteVerifierCookie(headers, this.options.pkceVerifierCookieName);
+
+        return { tokenData };
+      },
+      req,
+      dataOrCb,
+      cb,
+    );
+  }
+
+  async emailPasswordVerify(
+    req: Request,
+    data?: { verification_token: string },
+  ): Promise<{ tokenData: TokenData; headers: Headers }>;
+  async emailPasswordVerify<Res>(
+    req: Request,
+    cb: (params: ParamsOrError<{ tokenData: TokenData }>) => Res | Promise<Res>,
+  ): Promise<Res extends Response ? Res : TypedResponse<Res>>;
+  async emailPasswordVerify<Res extends Response>(
+    req: Request,
+    data: { verification_token: string },
+    cb: (params: ParamsOrError<{ tokenData: TokenData }>) => Res | Promise<Res>,
+  ): Promise<Res extends Response ? Res : TypedResponse<Res>>;
+  async emailPasswordVerify<Res>(
+    req: Request,
+    dataOrCb?:
+      | { verification_token: string }
+      | ((
+          params: ParamsOrError<{ tokenData: TokenData }>,
+        ) => Res | Promise<Res>),
+    cb?: (
+      params: ParamsOrError<{ tokenData: TokenData }>,
+    ) => Res | Promise<Res>,
+  ): Promise<
+    | {
+        tokenData: TokenData;
+        headers: Headers;
+      }
+    | (Res extends Response ? Res : TypedResponse<Res>)
+  > {
+    return handleAction(
+      async (data, headers, req) => {
+        const verifier = parseCookies(req, this.options).pkceVerifierCookie;
+
+        if (!verifier) {
+          throw new PKCEError("no pkce verifier cookie found");
+        }
+
+        const [verificationToken] = _extractParams(
+          data,
+          ["verification_token"],
+          "verification_token missing",
+        );
+
+        const tokenData = await (
+          await this.core
+        ).verifyEmailPasswordSignup(verificationToken, verifier);
 
         headers.append(
           "Set-Cookie",

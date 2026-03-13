@@ -28,6 +28,8 @@ import {
   type AuthOptions,
 } from "./client.js";
 
+const DEFAULT_EMAIL_VERIFICATION_ROUTE = "emailpassword/verify" as const;
+
 export * from "@gel/auth-core/errors";
 export type { TokenData, AuthOptions, Client };
 
@@ -214,12 +216,18 @@ export class ServerRequestAuth extends ClientAuth {
       "email or password missing",
     );
 
+    const verifyUrl = this.config.emailVerificationPath
+      ? new URL(
+          this.config.emailVerificationPath,
+          this.config.baseUrl,
+        ).toString()
+      : `${this.config.authRoute}/${DEFAULT_EMAIL_VERIFICATION_ROUTE}`;
     const result = await (
       await this.core
     ).signupWithEmailPassword(
       email,
       password,
-      `${this.config.authRoute}/emailpassword/verify`,
+      verifyUrl,
     );
 
     this.setVerifierCookie(result.verifier);
@@ -256,11 +264,17 @@ export class ServerRequestAuth extends ClientAuth {
         await this.core
       ).resendVerificationEmail(verificationToken.toString());
     } else if (email) {
+      const resendVerifyUrl = this.config.emailVerificationPath
+        ? new URL(
+            this.config.emailVerificationPath,
+            this.config.baseUrl,
+          ).toString()
+        : `${this.config.authRoute}/${DEFAULT_EMAIL_VERIFICATION_ROUTE}`;
       const { verifier } = await (
         await this.core
       ).resendVerificationEmailForEmail(
         email.toString(),
-        `${this.config.authRoute}/emailpassword/verify`,
+        resendVerifyUrl,
       );
 
       this.setVerifierCookie(verifier);
@@ -328,6 +342,34 @@ export class ServerRequestAuth extends ClientAuth {
     const tokenData = await (
       await this.core
     ).resetPasswordWithResetToken(resetToken, verifier, password);
+
+    this.setAuthCookie(tokenData.auth_token);
+
+    this.deleteVerifierCookie();
+
+    return { tokenData };
+  }
+
+  async emailPasswordVerify(
+    data: { verification_token: string } | FormData,
+  ): Promise<{ tokenData: TokenData }> {
+    const verifier =
+      this.cookies.get(this.config.pkceVerifierCookieName) ||
+      this.cookies.get("edgedb-pkce-verifier");
+
+    if (!verifier) {
+      throw new PKCEError("no pkce verifier cookie found");
+    }
+
+    const [verificationToken] = extractParams(
+      data,
+      ["verification_token"],
+      "verification_token missing",
+    );
+
+    const tokenData = await (
+      await this.core
+    ).verifyEmailPasswordSignup(verificationToken, verifier);
 
     this.setAuthCookie(tokenData.auth_token);
 

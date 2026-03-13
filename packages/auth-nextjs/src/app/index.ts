@@ -26,6 +26,8 @@ export {
   type CreateAuthRouteHandlers,
 };
 
+const DEFAULT_EMAIL_VERIFICATION_ROUTE = "emailpassword/verify" as const;
+
 export class NextAppAuth extends NextAuth {
   getSession = cache(async () => {
     const cookieStore = await cookies();
@@ -64,12 +66,18 @@ export class NextAppAuth extends NextAuth {
           ["email", "password"],
           "email or password missing",
         );
+        const verifyUrl = this.options.emailVerificationPath
+          ? new URL(
+              this.options.emailVerificationPath,
+              this.options.baseUrl,
+            ).toString()
+          : `${this._authRoute}/${DEFAULT_EMAIL_VERIFICATION_ROUTE}`;
         const result = await (
           await this.core
         ).signupWithEmailPassword(
           email,
           password,
-          `${this._authRoute}/emailpassword/verify`,
+          verifyUrl,
         );
         await this.setVerifierCookie(result.verifier);
         if (result.status === "complete") {
@@ -117,7 +125,29 @@ export class NextAppAuth extends NextAuth {
           await this.core
         ).resetPasswordWithResetToken(resetToken, verifier, password);
         await this.setAuthCookie(tokenData.auth_token);
-        this.deleteVerifierCookie();
+        await this.deleteVerifierCookie();
+        return tokenData;
+      },
+      emailPasswordVerify: async (
+        data: FormData | { verification_token: string },
+      ) => {
+        const cookieStore = await cookies();
+        const verifier =
+          cookieStore.get(this.options.pkceVerifierCookieName)?.value ||
+          cookieStore.get("edgedb-pkce-verifier")?.value;
+        if (!verifier) {
+          throw new PKCEError("no pkce verifier cookie found");
+        }
+        const [verificationToken] = _extractParams(
+          data,
+          ["verification_token"],
+          "verification_token missing",
+        );
+        const tokenData = await (
+          await this.core
+        ).verifyEmailPasswordSignup(verificationToken, verifier);
+        await this.setAuthCookie(tokenData.auth_token);
+        await this.deleteVerifierCookie();
         return tokenData;
       },
       emailPasswordResendVerificationEmail: async (
@@ -141,11 +171,17 @@ export class NextAppAuth extends NextAuth {
             await this.core
           ).resendVerificationEmail(verificationToken.toString());
         } else if (email) {
+          const resendVerifyUrl = this.options.emailVerificationPath
+            ? new URL(
+                this.options.emailVerificationPath,
+                this.options.baseUrl,
+              ).toString()
+            : `${this._authRoute}/${DEFAULT_EMAIL_VERIFICATION_ROUTE}`;
           const { verifier } = await (
             await this.core
           ).resendVerificationEmailForEmail(
             email.toString(),
-            `${this._authRoute}/emailpassword/verify`,
+            resendVerifyUrl,
           );
 
           const cookieStore = await cookies();
