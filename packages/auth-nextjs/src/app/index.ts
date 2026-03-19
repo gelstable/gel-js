@@ -117,7 +117,29 @@ export class NextAppAuth extends NextAuth {
           await this.core
         ).resetPasswordWithResetToken(resetToken, verifier, password);
         await this.setAuthCookie(tokenData.auth_token);
-        this.deleteVerifierCookie();
+        await this.deleteVerifierCookie();
+        return tokenData;
+      },
+      emailPasswordVerify: async (
+        data: FormData | { verification_token: string },
+      ) => {
+        const cookieStore = await cookies();
+        const verifier =
+          cookieStore.get(this.options.pkceVerifierCookieName)?.value ||
+          cookieStore.get("edgedb-pkce-verifier")?.value;
+        if (!verifier) {
+          throw new PKCEError("no pkce verifier cookie found");
+        }
+        const [verificationToken] = _extractParams(
+          data,
+          ["verification_token"],
+          "verification_token missing",
+        );
+        const tokenData = await (
+          await this.core
+        ).verifyEmailPasswordSignup(verificationToken, verifier);
+        await this.setAuthCookie(tokenData.auth_token);
+        await this.deleteVerifierCookie();
         return tokenData;
       },
       emailPasswordResendVerificationEmail: async (

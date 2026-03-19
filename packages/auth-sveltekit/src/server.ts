@@ -336,6 +336,34 @@ export class ServerRequestAuth extends ClientAuth {
     return { tokenData };
   }
 
+  async emailPasswordVerify(
+    data: { verification_token: string } | FormData,
+  ): Promise<{ tokenData: TokenData }> {
+    const verifier =
+      this.cookies.get(this.config.pkceVerifierCookieName) ||
+      this.cookies.get("edgedb-pkce-verifier");
+
+    if (!verifier) {
+      throw new PKCEError("no pkce verifier cookie found");
+    }
+
+    const [verificationToken] = extractParams(
+      data,
+      ["verification_token"],
+      "verification_token missing",
+    );
+
+    const tokenData = await (
+      await this.core
+    ).verifyEmailPasswordSignup(verificationToken, verifier);
+
+    this.setAuthCookie(tokenData.auth_token);
+
+    this.deleteVerifierCookie();
+
+    return { tokenData };
+  }
+
   async magicLinkSignUp(data: { email: string } | FormData): Promise<void> {
     if (!this.config.magicLinkFailurePath) {
       throw new ConfigurationError(
