@@ -267,6 +267,13 @@ export async function getTypes(
           );
         }
       }
+      // The backlinks subquery has no ORDER BY, so the server may return these
+      // in a different order per run, churning generated output. Sort after the
+      // remap above so the order matches the names we emit.
+      ((type as ObjectType).backlinks as Backlink[]).sort(byName);
+    }
+    if (Array.isArray((type as ObjectType).backlink_stubs)) {
+      ((type as ObjectType).backlink_stubs as Backlink[]).sort(byName);
     }
     switch (type.kind) {
       case "scalar":
@@ -427,6 +434,11 @@ export function topoSort(types: Type[]) {
   }
 
   return sorted;
+}
+
+// Code-point compare, not localeCompare: output must not vary by locale
+function byName(a: Backlink, b: Backlink) {
+  return a.name < b.name ? -1 : a.name > b.name ? 1 : 0;
 }
 
 export { getTypes as types };

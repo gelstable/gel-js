@@ -60,7 +60,10 @@ currently supported.`);
       [k: string]: ReturnType<typeof generateFiles>[number];
     } = {};
     let wasError = false;
-    await Promise.all(
+    // Queries are analyzed concurrently, so merging them as they resolve would
+    // let server latency decide the layout of the generated file. Promise.all
+    // preserves input order, so merge afterwards to keep output stable.
+    const generated = await Promise.all(
       matches.map(async (p) => {
         const prettyPath = "./" + path.posix.relative(root, p);
 
@@ -70,29 +73,33 @@ currently supported.`);
             useResolvedCodecType: params.options.useResolvedCodecType,
           });
           console.log(`   ${prettyPath}`);
-          const files = generateFiles({
+          return generateFiles({
             target: params.options.target!,
             path: p,
             types,
           });
-          for (const f of files) {
-            if (!filesByExtension[f.extension]) {
-              filesByExtension[f.extension] = f;
-            } else {
-              filesByExtension[f.extension]!.contents += `\n\n` + f.contents;
-              filesByExtension[f.extension]!.imports = filesByExtension[
-                f.extension
-              ]!.imports.merge(f.imports);
-            }
-          }
         } catch (err) {
           wasError = true;
           console.log(
             `Error in file '${prettyPath}': ${(err as Error).toString()}`,
           );
+          return null;
         }
       }),
     );
+    for (const files of generated) {
+      if (!files) continue;
+      for (const f of files) {
+        if (!filesByExtension[f.extension]) {
+          filesByExtension[f.extension] = f;
+        } else {
+          filesByExtension[f.extension]!.contents += `\n\n` + f.contents;
+          filesByExtension[f.extension]!.imports = filesByExtension[
+            f.extension
+          ]!.imports.merge(f.imports);
+        }
+      }
+    }
     if (!wasError) {
       console.log(
         `Generating query file${
@@ -181,7 +188,9 @@ async function getMatches(root: string, patterns?: string[]) {
     ignore: ["node_modules/**", `**/migrations/**`, `**/fixups/**`],
   });
 
-  return allFiles;
+  // globby's order follows directory traversal, which can differ between
+  // filesystems; sort so generated output matches across machines and CI
+  return allFiles.sort();
 }
 
 // const targetToExtension: {[k in Target]: string} = {
